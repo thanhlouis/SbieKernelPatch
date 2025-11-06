@@ -1,0 +1,46 @@
+name: "C/C++ Build & Code Scanning" # Tên quy trình sẽ hiển thị trong tab Actions
+
+on:
+  push:
+    branches: [ "main", "master" ] # Chạy khi có code được đẩy lên nhánh main/master
+  pull_request:
+    branches: [ "main", "master" ] # Chạy khi có Pull Request
+  schedule:
+    - cron: '30 1 * * 6' # Tùy chọn: Quét định kỳ mỗi thứ Bảy lúc 1:30 sáng
+
+jobs:
+  analyze:
+    name: Analyze  # Tên Job
+    runs-on: ubuntu-latest # Chọn môi trường chạy (nên dùng Ubuntu vì nhanh và miễn phí)
+    
+    permissions:
+      security-events: write # Quyền cần thiết để tải kết quả quét lên GitHub
+      actions: read
+      contents: read
+    
+    steps:
+    - name: Checkout repository # Bước 1: Lấy mã nguồn về runner
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Cần thiết cho CodeQL để có lịch sử đầy đủ
+        
+    - name: Initialize CodeQL # Bước 2: Chuẩn bị môi trường CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: 'cpp' # Khai báo ngôn ngữ là C/C++ (CodeQL dùng 'cpp' cho cả C và C++)
+        # Nếu muốn thêm các bộ truy vấn bảo mật mạnh hơn, bạn có thể thêm:
+        # queries: security-extended
+        
+    - name: Autobuild # Bước 3: Tự động Build dự án
+      # Bước này sẽ cố gắng sử dụng các công cụ build phổ biến (Make, CMake, v.v.)
+      # Nếu dự án C của bạn có Makefiles hoặc CMakeLists.txt, nó sẽ tự động biên dịch.
+      uses: github/codeql-action/autobuild@v3
+      
+      # LƯU Ý: Nếu Autobuild không hoạt động, bạn cần thay thế bước này bằng lệnh build thủ công:
+      # - name: Manual Build (Ví dụ nếu dùng CMake)
+      #   run: |
+      #     cmake -B build
+      #     cmake --build build
+      
+    - name: Perform CodeQL Analysis # Bước 4: Thực hiện quét CodeQL và tải kết quả lên GitHub
+      uses: github/codeql-action/analyze@v3
