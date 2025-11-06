@@ -1,46 +1,41 @@
-name: "C/C++ Build & Code Scanning" # Tên quy trình sẽ hiển thị trong tab Actions
+name: "SbieKernelPatch: MSBuild & Code Scanning" # Tên quy trình
 
 on:
   push:
-    branches: [ "main", "master" ] # Chạy khi có code được đẩy lên nhánh main/master
+    branches: [ "main", "master" ] # Kích hoạt khi có push vào nhánh main/master
   pull_request:
-    branches: [ "main", "master" ] # Chạy khi có Pull Request
+    branches: [ "main", "master" ] # Kích hoạt khi có Pull Request
   schedule:
-    - cron: '30 1 * * 6' # Tùy chọn: Quét định kỳ mỗi thứ Bảy lúc 1:30 sáng
+    - cron: '30 1 * * 6' # Tùy chọn: Quét định kỳ (mỗi thứ Bảy lúc 1:30 sáng UTC)
 
 jobs:
   analyze:
-    name: Analyze  # Tên Job
-    runs-on: ubuntu-latest # Chọn môi trường chạy (nên dùng Ubuntu vì nhanh và miễn phí)
-    
+    name: Analyze
+    runs-on: windows-latest # CHẠY TRÊN RUNNER WINDOWS để sử dụng MSBuild/Visual Studio Project
+
+    # Quyền cần thiết để tải kết quả quét bảo mật lên GitHub
     permissions:
-      security-events: write # Quyền cần thiết để tải kết quả quét lên GitHub
+      security-events: write 
       actions: read
       contents: read
     
     steps:
-    - name: Checkout repository # Bước 1: Lấy mã nguồn về runner
+    - name: Checkout repository # Bước 1: Lấy mã nguồn
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Cần thiết cho CodeQL để có lịch sử đầy đủ
+        fetch-depth: 0 # Cần thiết cho CodeQL để có lịch sử đầy đủ
         
-    - name: Initialize CodeQL # Bước 2: Chuẩn bị môi trường CodeQL
+    - name: Initialize CodeQL # Bước 2: Khởi tạo CodeQL cho C++
       uses: github/codeql-action/init@v3
       with:
-        languages: 'cpp' # Khai báo ngôn ngữ là C/C++ (CodeQL dùng 'cpp' cho cả C và C++)
-        # Nếu muốn thêm các bộ truy vấn bảo mật mạnh hơn, bạn có thể thêm:
-        # queries: security-extended
+        languages: 'cpp'
         
-    - name: Autobuild # Bước 3: Tự động Build dự án
-      # Bước này sẽ cố gắng sử dụng các công cụ build phổ biến (Make, CMake, v.v.)
-      # Nếu dự án C của bạn có Makefiles hoặc CMakeLists.txt, nó sẽ tự động biên dịch.
-      uses: github/codeql-action/autobuild@v3
-      
-      # LƯU Ý: Nếu Autobuild không hoạt động, bạn cần thay thế bước này bằng lệnh build thủ công:
-      # - name: Manual Build (Ví dụ nếu dùng CMake)
-      #   run: |
-      #     cmake -B build
-      #     cmake --build build
-      
-    - name: Perform CodeQL Analysis # Bước 4: Thực hiện quét CodeQL và tải kết quả lên GitHub
+    - name: Manual Build with MSBuild # Bước 3: Build thủ công (Thay thế cho Autobuild bị lỗi)
+      # Sử dụng MSBuild để biên dịch file SbieKernelPatch.sln
+      run: |
+        # Biên dịch dự án SbieKernelPatch.sln với cấu hình Release/x64.
+        # MSBuild đã được cài đặt sẵn và có thể truy cập trên runner Windows.
+        msbuild SbieKernelPatch.sln /p:Configuration=Release /p:Platform=x64
+        
+    - name: Perform CodeQL Analysis # Bước 4: Thực hiện quét CodeQL
       uses: github/codeql-action/analyze@v3
