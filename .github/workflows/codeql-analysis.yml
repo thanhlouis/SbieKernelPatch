@@ -46,6 +46,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         # Đường dẫn tới thư mục chứa file .exe của bạn
-        path: SbieKernelPatch/SbieKernelPatch/x64/Release/SbieKernelPatch.exe
+        path: x64/Release/SbieKernelPatch.exe
         name: SbieKernelPatch-Executable
         retention-days: 7 # Lưu trữ trong 7 ngày
