@@ -2,18 +2,17 @@ name: "SbieKernelPatch: MSBuild & Code Scanning" # Tên quy trình
 
 on:
   push:
-    branches: [ "main", "master" ] # Kích hoạt khi có push vào nhánh main/master
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main", "master" ] # Kích hoạt khi có Pull Request
+    branches: [ "main", "master" ]
   schedule:
-    - cron: '30 1 * * 6' # Tùy chọn: Quét định kỳ (mỗi thứ Bảy lúc 1:30 sáng UTC)
+    - cron: '30 1 * * 6' # Quét định kỳ mỗi thứ Bảy lúc 1:30 sáng UTC
 
 jobs:
   analyze:
     name: Analyze
-    runs-on: windows-latest # CHẠY TRÊN RUNNER WINDOWS để sử dụng MSBuild/Visual Studio Project
-
-    # Quyền cần thiết để tải kết quả quét bảo mật lên GitHub
+    runs-on: windows-latest # Bắt buộc phải dùng Windows runner
+    
     permissions:
       security-events: write 
       actions: read
@@ -23,18 +22,22 @@ jobs:
     - name: Checkout repository # Bước 1: Lấy mã nguồn
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0 # Cần thiết cho CodeQL để có lịch sử đầy đủ
+        fetch-depth: 0
+        
+    # BƯỚC MỚI: Thiết lập môi trường MSBuild/Visual Studio
+    - name: Configure and Run MSBuild
+      uses: microsoft/setup-msbuild@v2 # Action này thêm MSBuild vào PATH
+      with:
+        vs-version: '17.0' # Chọn Visual Studio 2022 (Phiên bản mới nhất)
         
     - name: Initialize CodeQL # Bước 2: Khởi tạo CodeQL cho C++
       uses: github/codeql-action/init@v3
       with:
         languages: 'cpp'
         
-    - name: Manual Build with MSBuild # Bước 3: Build thủ công (Thay thế cho Autobuild bị lỗi)
-      # Sử dụng MSBuild để biên dịch file SbieKernelPatch.sln
+    - name: Manual Build with MSBuild # Bước 3: Build thủ công
+      # Lệnh này bây giờ sẽ hoạt động vì MSBuild đã được thêm vào PATH
       run: |
-        # Biên dịch dự án SbieKernelPatch.sln với cấu hình Release/x64.
-        # MSBuild đã được cài đặt sẵn và có thể truy cập trên runner Windows.
         msbuild SbieKernelPatch.sln /p:Configuration=Release /p:Platform=x64
         
     - name: Perform CodeQL Analysis # Bước 4: Thực hiện quét CodeQL
