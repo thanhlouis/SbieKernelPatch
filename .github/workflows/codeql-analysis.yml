@@ -1,4 +1,4 @@
-name: "SbieKernelPatch: MSBuild & Code Scanning" # Tên quy trình
+name: "SbieKernelPatch: MSBuild & Code Scanning" 
 
 on:
   push:
@@ -6,12 +6,12 @@ on:
   pull_request:
     branches: [ "main", "master" ]
   schedule:
-    - cron: '30 1 * * 6' # Quét định kỳ mỗi thứ Bảy lúc 1:30 sáng UTC
+    - cron: '30 1 * * 6'
 
 jobs:
   analyze:
     name: Analyze
-    runs-on: windows-latest # Bắt buộc phải dùng Windows runner
+    runs-on: windows-latest
     
     permissions:
       security-events: write 
@@ -19,26 +19,33 @@ jobs:
       contents: read
     
     steps:
-    - name: Checkout repository # Bước 1: Lấy mã nguồn
+    - name: Checkout repository 
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
         
-    # BƯỚC MỚI: Thiết lập môi trường MSBuild/Visual Studio
     - name: Configure and Run MSBuild
-      uses: microsoft/setup-msbuild@v2 # Action này thêm MSBuild vào PATH
+      uses: microsoft/setup-msbuild@v2 
       with:
-        vs-version: '17.0' # Chọn Visual Studio 2022 (Phiên bản mới nhất)
+        vs-version: '17.0'
         
-    - name: Initialize CodeQL # Bước 2: Khởi tạo CodeQL cho C++
+    - name: Initialize CodeQL 
       uses: github/codeql-action/init@v3
       with:
         languages: 'cpp'
         
-    - name: Manual Build with MSBuild # Bước 3: Build thủ công
-      # Lệnh này bây giờ sẽ hoạt động vì MSBuild đã được thêm vào PATH
+    - name: Manual Build with MSBuild 
       run: |
         msbuild SbieKernelPatch.sln /p:Configuration=Release /p:Platform=x64
         
-    - name: Perform CodeQL Analysis # Bước 4: Thực hiện quét CodeQL
+    - name: Perform CodeQL Analysis # Quét CodeQL vẫn chạy trước khi upload
       uses: github/codeql-action/analyze@v3
+
+    # BƯỚC MỚI: UPLOAD FILE BUILD LÊN GITHUB ARTIFACTS
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        # Đường dẫn tới thư mục chứa file .exe của bạn
+        path: SbieKernelPatch/x64/Release/SbieKernelPatch.exe 
+        name: SbieKernelPatch-Executable
+        retention-days: 7 # Lưu trữ trong 7 ngày
